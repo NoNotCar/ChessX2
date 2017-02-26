@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: 01b2913d7f2ae7347aecb61b0ecc3088
+timeCreated: 1487628570
+licenseType: Free
+TrueTypeFontImporter:
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontName: PF Arma Five
+  fontNames:
+  - PF Arma Five
+  fallbackFontReferences: []
+  customCharacters: 
+  fontRenderingMode: 2
+  ascentCalculationMode: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
