@@ -22,6 +22,5 @@ public class MoverScript : MonoBehaviour {
         Board cb = GameObject.Find("BoardState").GetComponent<Board>();
         Vector2 pos = GetComponent<Transform>().position;
         cb.move(moving.GetComponent<Transform>().position, pos);
-        moving.GetComponent<Transform>().position = new Vector3(pos.x,pos.y,-1);
     }
 }

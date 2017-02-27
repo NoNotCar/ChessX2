@@ -9,7 +9,8 @@ public class BoardState : object
     public Piece lastmoved;
     public int height;
     public int width;
-    private int[] royals = new int[3] { 0, 0, 0 };
+    public int gravity;
+    private int[] royals = new int[2] { 0, 0 };
     public Board bscript;
     public BoardState(int w, int h, Board b = null)
     {
@@ -19,6 +20,7 @@ public class BoardState : object
         if (b != null)
         {
             bscript = b;
+            gravity = b.gravity;
         }
     }
     public bool in_board(Vector2 pos)
@@ -74,9 +76,9 @@ public class BoardState : object
     public void spawn(Vector2 pos, Piece p)
     {
         this[pos] = p;
-        if (p.script!=null && p.script.royal)
+        if (bscript!=null && p.script != null && p.script.royal)
         {
-            royals[p.side] += 1;
+            royals[p.side-1] += 1;
         }
     }
     public bool defeat(int side)
@@ -89,7 +91,7 @@ public class BoardState : object
                 rs += 1;
             }
         }
-        return rs < royals[side];
+        return rs < royals[side-1];
     }
     public BoardState copy()
     {
@@ -106,6 +108,8 @@ public class BoardState : object
                 }
             }
         }
+        b.royals = royals;
+        b.gravity = gravity;
         return b;
     }
     public BoardState[] extrapolate(int side, bool nocheck=true)
@@ -129,26 +133,45 @@ public class BoardState : object
         }
         return bss.ToArray();
     }
-    public void move(Vector2 start, Vector2 end)
+    public void move(Vector2 start, Vector2 end, bool chain=false)
     {
         Piece mp = this[start];
         Piece cp = this[end];
-        lastmoved = mp;
-        
+        if (!chain) { lastmoved = mp; }
         if (cp!=null && cp.side == mp.side)
         {
             this[start] = cp;
             this[end] = mp;
+            if (bscript != null)
+            {
+                cp.script.gameObject.GetComponent<Transform>().position = new Vector3(start.x, start.y, -1);
+                mp.script.gameObject.GetComponent<Transform>().position = new Vector3(end.x, end.y, -1);
+            }
         }
         else if (cp!=null && cp.script.deathtouch)
         {
             this[start] = null;
             this[end] = null;
-            return;
         }else
         {
             this[start] = null;
             this[end] = mp;
+            if (bscript != null)
+            {
+                mp.script.gameObject.GetComponent<Transform>().position = new Vector3(end.x, end.y, -1);
+            }
+        }
+        if (this[start] != cp && bscript!=null)
+        {
+            UnityEngine.Object.Destroy(cp.script.gameObject);
+        }
+        if (this[end] != mp)
+        {
+            if (bscript != null)
+            {
+                UnityEngine.Object.Destroy(mp.script.gameObject);
+            }
+            return;
         }
         if (mp.script.promotion != null && (mp.side==2?end.y==0:end.y==height-1))
         {
@@ -159,6 +182,23 @@ public class BoardState : object
             {
                 UnityEngine.Object.Destroy(mp.script.gameObject);
                 bscript.Spawn(mp.script.promotion, end, mp.side);
+            }
+        }
+        if (gravity == 1 && !chain)
+        {
+            foreach (Vector2 uv in new Vector2[] { Vector2.up, Vector2.right, Vector2.down, Vector2.left })
+            {
+                var spos = end+uv;
+                while (blocklevel(spos, 0) == 0)
+                {
+                    spos += uv;
+                }
+                if(blocklevel(spos, 0) == 3) { continue; }
+                var p = this[spos];
+                if (p!=null && spos != end + uv)
+                {
+                    move(spos, end + uv, true);
+                }
             }
         }
     }

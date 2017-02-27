@@ -6,7 +6,7 @@ using UnityEngine.UI;
 public class EndMessage : MonoBehaviour {
     bool showing = false;
     // Use this for initialization
-    void Start () {
+    void Awake () {
         GetComponentInChildren<Button>().interactable = false;
     }
 	

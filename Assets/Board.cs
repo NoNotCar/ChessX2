@@ -16,6 +16,7 @@ public class Board : MonoBehaviour {
     public BoardState bs;
     public int turn = 1;
     public bool over = false;
+    public int gravity = 0;
     private List<GameObject> active_movers = new List<GameObject>();
     private List<GameObject> active_info = new List<GameObject>();
     private int screen_width;
@@ -82,13 +83,6 @@ public class Board : MonoBehaviour {
         dest_info();
         Piece mp = bs[start];
         Piece cp = bs[end];
-        if (cp != null && cp.side!=turn)
-        {
-            Destroy(cp.script.gameObject);
-        } else if (cp != null)
-        {
-            cp.script.gameObject.GetComponent<Transform>().position = new Vector3(start.x,start.y,-1);
-        }
         bs.move(start, end);
         if (bs[end] == null)
         {
@@ -117,11 +111,11 @@ public class Board : MonoBehaviour {
     {
         if (voids.Contains(pos)) { return; }
         GameObject np = Instantiate(pfab, new Vector3(pos.x, pos.y, -1), side==2 ? Quaternion.AngleAxis(180, Vector3.forward) : Quaternion.identity);
-        bs.spawn(pos,np.GetComponent<PieceScript>().piece);
-        if (side==2)
+        if (side == 2)
         {
             np.GetComponent<PieceScript>().blacken();
         }
+        bs.spawn(pos,np.GetComponent<PieceScript>().piece);
     }
     private void Fit_Camera()
     {
