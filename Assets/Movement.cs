@@ -378,6 +378,10 @@ public class SRider: Jumper
                     var ncpath = new List<Vector2>(cpath);
                     ncpath.Add(v + c);
                     moves.AddRange(recursive_f(ncpath, pos, b, side));
+                    if (ranged && cpath.Count()<limit)
+                    {
+                        moves.Add(v + c);
+                    }
                 }
                 else if (bl == 1 && (cpath.Count() == limit || ranged))
                 {
