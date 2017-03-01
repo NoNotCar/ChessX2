@@ -135,6 +135,11 @@ public class BoardState : object
     }
     public void move(Vector2 start, Vector2 end, bool chain=false)
     {
+        if (start == end)
+        {
+            this[start].script.selfmove.execute(start, this);
+            return;
+        }
         Piece mp = this[start];
         Piece cp = this[end];
         if (!chain) { lastmoved = mp; }
@@ -235,6 +240,18 @@ public class BoardState : object
             }
         }
     }
+    public void Destroy(Vector2 pos)
+    {
+        var p = this[pos];
+        if (p != null)
+        {
+            this[pos] = null;
+            if (bscript != null)
+            {
+                UnityEngine.Object.Destroy(p.script.gameObject);
+            }
+        }
+    }
 }
 public class Piece : object
 {
@@ -250,6 +267,15 @@ public class Piece : object
     public Vector2[] moves(Vector2 pos, BoardState b, bool nocheck=false)
     {
         List<Vector2> moves = new List<Vector2>();
+        if (script != null && script.selfmove != null)
+        {
+            BoardState nbs = b.copy();
+            nbs.move(pos, pos);
+            if (nocheck || !nbs.extrapolate(3 - side).Any(e => e.defeat(side)))
+            {
+                moves.Add(pos);
+            }
+        }
         foreach (Atom a in movement)
         {
             foreach (Vector2 m in a.moves(pos, pos, b, side))
@@ -533,10 +559,11 @@ class TwixtChecker: Modified
 }
 class Outward : Modified
 {
-    public Outward(Atom a): base(a) { }
+    int angle;
+    public Outward(Atom a, int ang): base(a) { angle = ang; }
     public override bool valid(Vector2 pos, Vector2 opos, Vector2 move, BoardState b, int side)
     {
-        return Vector2.Angle(move, opos-pos) >= 90;
+        return Vector2.Angle(move, opos-pos) >= angle;
     }
 }
 class LR: Modified
@@ -625,7 +652,8 @@ class MParser : object
         {"p",a=>new Pawn(a) },
         {"ll",a=>new TwixtChecker(a,b=>b!=0) },
         {"j",a=>new TwixtChecker(a,b=>(b==0||b==3)) },
-        {"o",a=>new Outward(a) },
+        {"o",a=>new Outward(a,90) },
+        {"oo",a=>new Outward(a,135) },
         {"m",a=>new ModBL(a,0) },
         {"a",a=>new ModBL(a,1) },
         {"l",a=>new LR(a,false) },
