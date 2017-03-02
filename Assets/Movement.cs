@@ -12,6 +12,7 @@ public class BoardState : object
     public int gravity;
     private int[] royals = new int[2] { 0, 0 };
     public Board bscript;
+    public bool active { get { return bscript != null; } }
     public BoardState(int w, int h, Board b = null)
     {
         board = new Piece[w, h];
@@ -110,6 +111,7 @@ public class BoardState : object
         }
         b.royals = royals;
         b.gravity = gravity;
+        b.lastmoved = lastmoved;
         return b;
     }
     public BoardState[] extrapolate(int side, bool nocheck=true)
@@ -125,7 +127,7 @@ public class BoardState : object
                     foreach (Vector2 mpos in p.moves(pos, this, nocheck))
                     {
                         BoardState nb = copy();
-                        nb.move(pos, mpos);
+                        p.move(pos, mpos, nb);
                         bss.Add(nb);
                     }
                 }
@@ -137,6 +139,7 @@ public class BoardState : object
     {
         if (start == end)
         {
+            lastmoved = this[start];
             this[start].script.selfmove.execute(start, this);
             return;
         }
@@ -243,7 +246,7 @@ public class BoardState : object
     public void Destroy(Vector2 pos)
     {
         var p = this[pos];
-        if (p != null)
+        if (p != null && !p.indestructible)
         {
             this[pos] = null;
             if (bscript != null)
@@ -281,7 +284,7 @@ public class Piece : object
             foreach (Vector2 m in a.moves(pos, pos, b, side))
             {
                 BoardState nbs = b.copy();
-                nbs.move(pos, m + pos);
+                nbs[pos].move(pos, m + pos, nbs);
                 if (nocheck|| !nbs.extrapolate(3-side).Any(e => e.defeat(side)))
                 {
                     moves.Add(m+pos);
@@ -290,6 +293,22 @@ public class Piece : object
         }
         moves.DeDuplicate();
         return moves.ToArray();
+    }
+    public void move(Vector2 start, Vector2 end, BoardState b)
+    {
+        if (start == end) { b.move(start, end); return; }
+        foreach (Atom a in movement)
+        {
+            foreach (Vector2 m in a.moves(start, start, b, side))
+            {
+                if (m + start == end)
+                {
+                    a.move(start, end,side, b);
+                    return;
+                }
+            }
+        }
+        throw new Exception("OH POO");
     }
 }
 public class Block: Piece
@@ -311,6 +330,10 @@ abstract public class Atom: object
             v = new Vector2(v.y, -v.x);
         }
         return v;
+    }
+    public virtual void move(Vector2 start, Vector2 end, int side, BoardState b)
+    {
+        b.move(start, end);
     }
 }
 public class Jumper: Atom
@@ -437,6 +460,11 @@ public class Mime : Atom
         }
         return moves.ToArray();
     }
+
+    public override void move(Vector2 start, Vector2 end, int side, BoardState b)
+    {
+        b.lastmoved.move(start, end, b);
+    }
 }
 public class Swap : Atom
 {
@@ -475,6 +503,30 @@ public class CopyCat : Modified
             }
         }
         return moves.ToArray();
+    }
+    public override void move(Vector2 start, Vector2 end, int side, BoardState b)
+    {
+        foreach (var v in ((Jumper)atom).offsets)
+        {
+            var bl = b.blocklevel(start + v, 1);
+            if (bl == 1 || bl == 2)
+            {
+                var p = b[v + start];
+                foreach (var m in p.movement)
+                {
+                    if (m.GetType() != GetType())
+                    {
+                        foreach (var mo in m.moves(start, start, b, side)){
+                            if (mo == (end - start))
+                            {
+                                m.move(start, end, side, b);
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 public abstract class Modified: Atom
@@ -591,6 +643,71 @@ class HV: Modified
         return h ? Math.Abs(move.x) > Math.Abs(move.y) : Math.Abs(move.x) < Math.Abs(move.y);
     }
 }
+class Push : Modified {
+    public Push(Atom a) : base(a) { }
+    public override Vector2[] moves(Vector2 pos, Vector2 opos, BoardState b, int side)
+    {
+        var l = new List<Vector2>();
+        foreach (Vector2 o in ((Rider)atom).offsets)
+        {
+            var pushing = 0;
+            var pv = Vector2.zero;
+            for (int i = 1; ; i++)
+            {
+                pv += o;
+                int bl = b.blocklevel(pos + pv, side);
+                while (bl == 1 || bl == 2)
+                {
+                    pv += o;
+                    pushing++;
+                    bl = b.blocklevel(pos + pv, side);
+                    if (pushing > atom.limit)
+                    {
+                        goto Exit;
+                    }
+                }
+                if (bl == 0)
+                {
+                    l.Add(o * i);
+                }
+                else if (bl < 3)
+                {
+                    
+                }else
+                {
+                    break;
+                }
+            }
+        Exit:;
+        }
+        return l.ToArray();
+    }
+    public override void move(Vector2 start, Vector2 end, int side, BoardState b)
+    {
+        var moving = new List<Vector2>() { start };
+        var vl = ((Rider)atom).offsets[0].magnitude;
+        var l = (end - start).magnitude/vl;
+        for (int n = 1; n <= l; n++)
+        {
+            var pos = start + (end - start).normalized * vl * n;
+            var p = b[pos];
+            if (p != null)
+            {
+                moving.Add(pos);
+                l += vl;
+            }
+        }
+        for (int n = moving.Count()-1; n >=0; n--)
+        {
+            /*/if (b.active)
+            {
+                Debug.Log(moving[n]);
+                Debug.Log(end + (end - start).normalized * vl * n);
+            }/*/
+            b.move(moving[n], end + (end - start).normalized * vl * n);
+        }
+    }
+}
 class Combo : Atom
 {
     private Atom[] starts;
@@ -660,7 +777,8 @@ class MParser : object
         {"r",a=>new LR(a,true) },
         {"v",a=>new HV(a,false) },
         {"h",a=>new HV(a,true) },
-        {"cc", a=> new CopyCat(a) }
+        {"cc", a=> new CopyCat(a) },
+        {"bu", a=> new Push(a) }
     };
     public static Atom[] parse(string s)
     {

@@ -83,7 +83,7 @@ public class Board : MonoBehaviour {
         dest_info();
         Piece mp = bs[start];
         Piece cp = bs[end];
-        bs.move(start, end);
+        mp.move(start, end, bs);
         if (bs[end] == null)
         {
             Destroy(mp.script.gameObject);

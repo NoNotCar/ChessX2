@@ -16,11 +16,6 @@ public class PieceScript : MonoBehaviour {
         piece = get_piece();
         pname = gameObject.name.Substring(0, gameObject.name.Length - 7);
         GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("Pieces/White/" + pname);
-        var sms = GetComponent<PScript>();
-        if (sms != null)
-        {
-            selfmove = sms;
-        }
     }
 
     // Update is called once per frame
