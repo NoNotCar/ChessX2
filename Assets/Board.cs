@@ -17,7 +17,7 @@ public class Board : MonoBehaviour {
     public int turn = 1;
     public bool over = false;
     public int gravity = 0;
-    private List<GameObject> active_movers = new List<GameObject>();
+    public List<GameObject> active_movers = new List<GameObject>();
     private List<GameObject> active_info = new List<GameObject>();
     private int screen_width;
     // Use this for initialization
@@ -91,7 +91,7 @@ public class Board : MonoBehaviour {
         turn = 3-turn;
         check_mate();
     }
-    private void dest_movers()
+    public void dest_movers()
     {
         foreach (GameObject g in active_movers)
         {

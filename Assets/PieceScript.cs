@@ -32,7 +32,14 @@ public class PieceScript : MonoBehaviour {
         Board cb = GameObject.Find("BoardState").GetComponent<Board>();
         if (cb.turn == piece.side && !cb.over)
         {
-            cb.ShowMoves(piece, gameObject, GetComponent<Transform>().position);
+            if (cb.active_movers.Count > 0)
+            {
+                cb.dest_movers();
+            }
+            else
+            {
+                cb.ShowMoves(piece, gameObject, GetComponent<Transform>().position);
+            }
         }
     }
     public Piece get_piece(bool blacken=false)

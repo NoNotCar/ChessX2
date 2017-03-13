@@ -181,15 +181,20 @@ public class BoardState : object
             }
             return;
         }
-        if (mp.script.promotion != null && (mp.side==2?end.y==0:end.y==height-1))
+        foreach (var p in new Piece[] { mp, cp })
         {
-            if (bscript == null)
+            var loc = p == mp ? end : start;
+            if (p!=null && p.script.promotion != null && (p.side == 2 ? loc.y == 0 : loc.y == height - 1))
             {
-                this[end] = mp.script.promotion.GetComponent<PieceScript>().get_piece();
-            }else
-            {
-                UnityEngine.Object.Destroy(mp.script.gameObject);
-                bscript.Spawn(mp.script.promotion, end, mp.side);
+                if (bscript == null)
+                {
+                    this[loc] = p.script.promotion.GetComponent<PieceScript>().get_piece();
+                }
+                else
+                {
+                    UnityEngine.Object.Destroy(p.script.gameObject);
+                    bscript.Spawn(p.script.promotion, loc, p.side);
+                }
             }
         }
         if (gravity == 1 && !chain)

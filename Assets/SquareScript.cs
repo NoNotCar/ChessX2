@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SquareScript : MonoBehaviour {
+public class SquareScript : MonoBehaviour
+{
     public Sprite OddSprite;
     public Sprite EvenSprite;
     // Use this for initialization
@@ -19,9 +20,13 @@ public class SquareScript : MonoBehaviour {
             GetComponent<SpriteRenderer>().sprite = OddSprite;
         }
     }
-	
-	// Update is called once per frame
-	void Update () {
-		
-	}
+    
+    private void OnMouseDown()
+    {
+        Board cb = GameObject.Find("BoardState").GetComponent<Board>();
+        if (cb.active_movers.Count > 0)
+        {
+            cb.dest_movers();
+        }
+    }
 }
