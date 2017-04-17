@@ -181,7 +181,8 @@ public class BoardState : object
             }
             return;
         }
-        foreach (var p in new Piece[] { mp, cp })
+        var plist = cp!=null && mp.side == cp.side ? new Piece[] { mp, cp } : new Piece[] { mp };
+        foreach (var p in plist)
         {
             var loc = p == mp ? end : start;
             if (p!=null && p.script.promotion != null && (p.side == 2 ? loc.y == 0 : loc.y == height - 1))
